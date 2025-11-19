@@ -1,0 +1,110 @@
+A) POST the stock payload (prove save path works)
+Run this exact cURL right now (adjust host/port if needed):
+
+bash
+Copy
+curl -X POST http://localhost:5000/api/daily-stock \
+  -H "Content-Type: application/json" \
+  -d '{
+    "salesFormId": "TEST-ID-123",
+    "meatGrams": 2500,
+    "burgerBuns": 48,
+    "drinks": { "Coke": 6, "Sprite": 4, "Fanta": 0, "Water": 2 },
+    "stockRequests": { "Iceberg Lettuce 1 kg": 2, "Tomatoes - Tor Tomato 1 kg": 1 }
+  }'
+Then verify:
+
+sql
+Copy
+SELECT id, createdAt, meatGrams, burgerBuns
+FROM "DailyStock"
+ORDER BY "createdAt" DESC
+LIMIT 1;
+If still empty, fix server/api/daily-stock.ts with the drop-in below.
+
+B) Canonical server/api/daily-stock.ts (drop-in)
+Use this exact file to avoid name mismatches. It maps drinks → drinkStock, coerces numbers, saves the full maps (store everything), and emails only >0.
+
+ts
+Copy
+import { prisma } from '@/lib/prisma';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import nodemailer from 'nodemailer';
+
+function toInt(v: any, def = 0) {
+  const n = parseInt(v as string, 10);
+  return Number.isFinite(n) ? n : def;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const {
+      salesFormId = null,
+      meatGrams,
+      burgerBuns,
+      drinks = {},
+      stockRequests = {},
+    } = req.body || {};
+
+    const payload = {
+      salesFormId: salesFormId || null,
+      meatGrams: toInt(meatGrams),
+      burgerBuns: toInt(burgerBuns),
+      drinkStock: Object.fromEntries(
+        Object.entries(drinks).map(([k, v]) => [k, toInt(v)])
+      ),
+      stockRequests: Object.fromEntries(
+        Object.entries(stockRequests).map(([k, v]) => [k, toInt(v)])
+      ),
+      status: 'submitted' as const,
+    };
+
+    const saved = await prisma.dailyStock.create({ data: payload });
+
+    // Email summary (only >0 shown)
+    const posDrinks = Object.entries(payload.drinkStock).filter(([, n]) => (n as number) > 0);
+    const posRequests = Object.entries(payload.stockRequests).filter(([, n]) => (n as number) > 0);
+
+    const lines: string[] = [
+      `Daily Stock Submission`,
+      `Submitted: ${new Date(saved.createdAt).toLocaleString()}`,
+      salesFormId ? `Linked Sales ID: ${salesFormId}` : `Linked Sales ID: -`,
+      ``,
+      `Counts`,
+      `- Meat (g): ${payload.meatGrams}`,
+      `- Burger Buns: ${payload.burgerBuns}`,
+      ``,
+      `Drinks (>0):`,
+      ...(posDrinks.length ? posDrinks.map(([k, v]) => `- ${k}: ${v}`) : ['- none']),
+      ``,
+      `Stock Requests (>0):`,
+      ...(posRequests.length ? posRequests.map(([k, v]) => `- ${k}: ${v}`) : ['- none']),
+    ];
+
+    // Use existing SMTP env; do not add deps beyond nodemailer
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: 'smashbrothersburgersth@gmail.com',
+      subject: `Daily Stock Submission ${new Date(saved.createdAt).toLocaleDateString()}`,
+      text: lines.join('\n'),
+    });
+
+    return res.status(200).json({ success: true, id: saved.id });
+  } catch (err) {
+    console.error('[daily-stock] save/email error', err);
+    return res.status(500).json({ error: 'Failed to save stock submission' });
+  }
+}
+Acceptance: POST again; expect 200 + row in DailyStock + email delivered.
