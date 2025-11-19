@@ -1,0 +1,987 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@import "./styles/theme.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FIXED: Consistent Base Typography */
+html {
+  font-size: 16px; /* Fixed base size - no clamp issues */
+  -webkit-text-size-adjust: 100%;
+  line-height: 1.5;
+}
+
+/* Mobile responsive sizing */
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+}
+
+@media (max-width: 640px) {
+  html { font-size: 13px; }
+}
+
+/* FIXED: Consistent Text Sizing */
+button, .btn, p, .prose p { 
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* FIXED: Proper Form Input Sizing */
+input, select, textarea { 
+  font-size: 1rem; 
+  min-height: 44px; /* Touch-friendly */
+  padding: 0.75rem;
+  line-height: 1.2;
+}
+
+/* FIXED: Consistent Placeholder Sizing */
+::placeholder {
+  font-size: 0.875rem !important; /* Smaller than input text */
+  color: #9ca3af;
+  opacity: 1;
+}
+
+/* Style Guide Typography */
+.h1 { @apply text-2xl lg:text-3xl font-black tracking-tight; } /* Bigic style - bold and impactful */
+.h2 { @apply text-xl lg:text-2xl font-medium; } /* Medium weight */
+.h3 { @apply text-lg lg:text-xl font-normal; } /* Caption style */
+.text-body { @apply text-sm font-normal; }
+.text-caption { @apply text-sm font-normal text-gray-600; }
+
+/* Numeric alignment for tables */
+.num { text-align: right; }
+
+/* Style Guide Button System */
+button, .btn {
+  min-height: 40px;
+  min-width: 40px;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  padding: 0.5rem 1rem;
+}
+
+/* Primary Button - Style Guide Blue */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #1e4fa3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(34, 86, 62, 0.2);
+}
+
+/* Secondary Button - Gray Border */
+.btn-secondary {
+  background-color: white;
+  color: var(--text-primary);
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Destructive Button - Style Guide Red */
+.btn-destructive {
+  background-color: var(--danger);
+  color: white;
+  border: none;
+}
+
+.btn-destructive:hover {
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+}
+
+/* Style Guide 8px Grid System */
+.spacing-1 { margin: 8px; padding: 8px; }
+.spacing-2 { margin: 16px; padding: 16px; }
+.spacing-3 { margin: 24px; padding: 24px; }
+.spacing-4 { margin: 32px; padding: 32px; }
+.spacing-5 { margin: 40px; padding: 40px; }
+.spacing-6 { margin: 48px; padding: 48px; }
+
+.gap-8 { gap: 8px; }
+.gap-16 { gap: 16px; }
+.gap-24 { gap: 24px; }
+.gap-32 { gap: 32px; }
+
+/* FIXED: Proper Card Responsive Spacing */
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* FIXED: Global Layout Containment */
+html, body { 
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* { 
+  box-sizing: border-box;
+  max-width: 100%; /* Prevent any element from overflowing */
+}
+
+/* FIXED: Container Max-Width Control */
+.container, [class*="container"] {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* FIXED: Responsive Grid System */
+.grid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 1200px; padding-left: 2rem; padding-right: 2rem; }
+}
+
+:root {
+  /* Style Guide Palette */
+  --app-bg: hsl(210, 20%, 98%);
+  --card-bg: hsl(0, 0%, 100%);
+  --text-primary: hsl(215, 28%, 17%); /* Dark foreground */
+  --text-secondary: hsl(215, 16%, 47%); /* Medium foreground */
+  --text-muted: hsl(210, 16%, 82%); /* Muted foreground */
+  --border-light: hsl(214, 32%, 91%);
+  
+  /* Style Guide Colors */
+  --primary: #22563EB; /* Primary blue */
+  --success: #059669; /* Success green */
+  --warning: #D97706; /* Warning orange */
+  --danger: #DC2626; /* Danger red */
+  --error: #DC2626;
+  
+  /* Legacy compatibility */
+  --primary: hsl(158, 64%, 52%);
+  --secondary: hsl(215, 28%, 17%);
+  --background: var(--app-bg);
+  --text: var(--text-primary);
+  --label: var(--text-secondary);
+  --border: var(--border-light);
+  --sidebar-bg: var(--card-bg);
+  --sidebar-text: var(--text-primary);
+  
+  /* Tailwind compatibility */
+  --background-hsl: var(--app-bg);
+  --foreground: var(--text-primary);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: var(--text-secondary);
+  --popover: var(--card-bg);
+  --popover-foreground: var(--text-primary);
+  --card: var(--card-bg);
+  --card-foreground: var(--text-primary);
+  --border-hsl: var(--border-light);
+  --input: var(--border-light);
+  --primary-hsl: var(--primary);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary-hsl: hsl(210, 40%, 98%);
+  --secondary-foreground: var(--text-primary);
+  --accent: hsl(210, 40%, 98%);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: var(--primary);
+  --radius: 1rem;
+}
+
+.dark {
+  /* Dark Mode Finance Palette */
+  --app-bg: hsl(222, 47%, 4%);
+  --card-bg: hsl(222, 47%, 8%);
+  --text-primary: hsl(213, 31%, 91%);
+  --text-secondary: hsl(215, 16%, 65%);
+  --border-light: hsl(215, 28%, 17%);
+  --accent-lime: hsl(142, 76%, 45%);
+  --accent-emerald: hsl(158, 64%, 60%);
+  --accent-slate: hsl(222, 47%, 15%);
+  --success: hsl(142, 76%, 45%);
+  --warning: hsl(45, 93%, 58%);
+  --error: hsl(0, 84%, 60%);
+  
+  /* Legacy compatibility */
+  --background: var(--app-bg);
+  --text: var(--text-primary);
+  --label: var(--text-secondary);
+  --border: var(--border-light);
+  --sidebar-bg: var(--card-bg);
+  --sidebar-text: var(--text-primary);
+  
+  /* Tailwind compatibility */
+  --background-hsl: var(--app-bg);
+  --foreground: var(--text-primary);
+  --muted: var(--accent-slate);
+  --muted-foreground: var(--text-secondary);
+  --popover: var(--card-bg);
+  --popover-foreground: var(--text-primary);
+  --card: var(--card-bg);
+  --card-foreground: var(--text-primary);
+  --border-hsl: var(--border-light);
+  --input: var(--border-light);
+  --primary-hsl: var(--accent-lime);
+  --primary-foreground: var(--accent-slate);
+  --secondary-hsl: var(--accent-slate);
+  --secondary-foreground: var(--text-primary);
+  --accent: var(--accent-slate);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--error);
+  --destructive-foreground: var(--text-primary);
+  --ring: var(--accent-lime);
+}
+
+/* Custom scrollbar for sidebar - subtle and blended */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Mobile grid responsiveness for forms */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* FIXED: Mobile Layout Optimization */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* FIXED: Mobile Container Spacing */
+  .container {
+    max-width: 100% !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  /* FIXED: Mobile Page Spacing */
+  .page-content {
+    padding: 0.5rem;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Sticky action bars for forms */
+  .sticky-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid #e5e7eb;
+    padding: 0.5rem 1rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  
+  /* Spacer to prevent content being hidden */
+  .sticky-spacer {
+    height: 4rem;
+  }
+  
+  /* Headings more compact on mobile */
+  .h1 { @apply text-lg font-bold; }
+  .h2 { @apply text-base font-semibold; }
+  
+  .card-content {
+    padding: 1rem !important;
+  }
+  
+  /* FIXED: Mobile Grid Layout */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* FIXED: Mobile Table Responsiveness */
+  table {
+    font-size: 0.875rem !important;
+    width: 100% !important;
+  }
+  
+  th, td {
+    padding: 0.5rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  /* Tables - stack cells on mobile */
+  .table-responsive th, .table-responsive td {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+  }
+  
+  /* Better button spacing on mobile */
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .btn-group button {
+    width: 100%;
+  }
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Currency formatting for consistent alignment */
+.currency, .thb, .num {
+  font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Analysis page: responsive comparison layout */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .comparison-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Additional mobile styles for forms and interactions */
+@media (max-width: 768px) {
+  /* FIXED: Mobile Touch Targets */
+  input, select, textarea {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    padding: 0.75rem !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+  }
+  
+  button {
+    min-height: 44px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    border-radius: 8px !important;
+    width: auto;
+  }
+  
+  /* FIXED: Mobile Button Groups */
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .btn-group button {
+    width: 100% !important;
+  }
+  
+  /* Buttons - full width on mobile */
+  .mobile-full-button {
+    width: 100% !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Table responsive - horizontal scroll */
+  .table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  table {
+    min-width: 600px !important;
+  }
+  
+  /* Hide non-essential columns on mobile */
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  /* Sidebar - overlay on mobile */
+  .sidebar-mobile {
+    position: fixed !important;
+    z-index: 50 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease !important;
+  }
+  
+  .sidebar-mobile.open {
+    transform: translateX(0) !important;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    max-width: 90% !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+  
+  /* Form grids - 2 columns on tablet */
+  .tablet-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+  
+  /* Input fields - comfortable tablet size */
+  input, select, textarea {
+    min-height: 40px !important;
+    padding: 0.625rem !important;
+  }
+  
+  /* Button sizing for tablet */
+  button {
+    min-height: 40px !important;
+    padding: 0.625rem 1rem !important;
+  }
+}
+
+/* Forms Library specific styles */
+.forms-library {
+  padding: 1rem;
+}
+
+.forms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .forms-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .form-card {
+    padding: 1rem;
+  }
+  
+  .form-title {
+    font-size: 1.1rem;
+  }
+  
+  .form-meta {
+    font-size: 0.875rem;
+  }
+}
+
+/* PDF download buttons - mobile friendly */
+.pdf-download-btn {
+  min-width: 120px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .pdf-download-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--background);
+    color: var(--text-primary);
+    line-height: 1.5;
+    @apply antialiased;
+  }
+
+  /* Style Guide Typography */
+  h1 {
+    font-weight: 900; /* Bigic style - very bold */
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  h2 {
+    font-weight: 500; /* Medium weight */
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-weight: 400; /* Caption style - normal weight */
+    font-size: clamp(1.125rem, 2.5vw, 1.25rem);
+    line-height: 1.4;
+  }
+
+  /* Style Guide Form Elements */
+  input, select, textarea {
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background-color: white;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(34, 86, 62, 0.1);
+  }
+
+  /* Style Guide Label Styling */
+  label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  /* Error Message Styling */
+  .error-message {
+    color: var(--danger);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Placeholder Styling */
+  ::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  /* Disabled State */
+  input:disabled, select:disabled, textarea:disabled, button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+  }
+}
+
+@layer utilities {
+  .font-poppins {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer components {
+  /* Modern Finance App Components */
+  .metric-card {
+    @apply rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all duration-200;
+    background: var(--card-bg);
+    border-color: var(--border-light);
+  }
+  
+  .metric-card-accent {
+    @apply rounded-2xl border-0 p-4 shadow-sm text-white;
+    background: var(--accent-slate);
+  }
+  
+  .metric-card-lime {
+    @apply rounded-2xl border-0 p-4 shadow-sm;
+    background: var(--accent-lime);
+    color: var(--accent-slate);
+  }
+  
+  .accent-card-blue {
+    background: hsl(214, 89%, 52%);
+    color: white;
+  }
+  
+  .accent-card-orange {
+    background: hsl(20, 90%, 56%);
+    color: white;
+  }
+  
+  .accent-card-emerald {
+    background: var(--accent-emerald);
+    color: white;
+  }
+  
+  .accent-card-slate {
+    background: var(--accent-slate);
+    color: white;
+  }
+  
+  .accent-card-lime {
+    background: var(--accent-lime);
+    color: var(--accent-slate);
+  }
+  
+  .section-card {
+    @apply bg-white rounded-2xl border border-gray-100 p-6 shadow-sm;
+    background: var(--card-bg);
+    border-color: var(--border-light);
+  }
+  
+  .modern-button {
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .modern-button-primary {
+    @apply modern-button text-white;
+    background: var(--primary);
+    color: white;
+  }
+  
+  .modern-button-primary:hover {
+    background: #1e4fa3;
+    transform: translateY(-1px);
+  }
+  
+  .modern-button-secondary {
+    @apply modern-button;
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid #d1d5db;
+  }
+  
+  .modern-button-secondary:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+  
+  .modern-button-destructive {
+    @apply modern-button text-white;
+    background: var(--danger);
+    color: white;
+  }
+  
+  .modern-button-destructive:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  .card {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table th, .table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table tr:hover {
+    background: var(--border);
+  }
+
+  .sidebar-menu {
+    background-color: var(--sidebar-bg) !important;
+    color: var(--sidebar-text) !important;
+  }
+  
+  /* Shift Summary specific styles */
+  .bg-app {
+    background-color: #f5f7f8;
+  }
+  
+  .card {
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm;
+  }
+  
+  .card-inner {
+    @apply p-6;
+  }
+  
+  .header-pill {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm;
+  }
+  
+  .text-heading {
+    color: #111827;
+  }
+  
+  .text-muted {
+    color: #6B7280;
+  }
+
+  .sidebar-menu * {
+    color: var(--sidebar-text) !important;
+  }
+
+  .sidebar-menu button {
+    color: var(--sidebar-text) !important;
+  }
+
+  .sidebar-menu button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--sidebar-text) !important;
+  }
+}
+
+/* Custom restaurant styling */
+.restaurant-primary {
+  background-color: #F5D016;
+  color: hsl(20, 14.3%, 4.1%);
+}
+
+.restaurant-primary:hover {
+  background-color: #E6C014;
+}
+
+.restaurant-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid hsl(20, 5.9%, 90%);
+}
+
+.restaurant-nav {
+  background-color: hsl(0, 0%, 98%);
+  border-bottom: 1px solid hsl(20, 5.9%, 90%);
+}
+
+.chart-container {
+  position: relative;
+  height: 320px;
+  width: 100%;
+}
+
+/* Dark mode styles */
+.dark .restaurant-card {
+  background: hsl(240, 10%, 3.9%);
+  border: 1px solid hsl(240, 3.7%, 15.9%);
+  box-shadow: 0 1px 3px 0 rgba(255, 255, 255, 0.1), 0 1px 2px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .restaurant-nav {
+  background-color: hsl(240, 10%, 3.9%);
+  border-bottom: 1px solid hsl(240, 3.7%, 15.9%);
+}
+
+/* Skeleton loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+  background-size: 200px 100%;
+}
+
+/* Input utility for Daily Sales form */
+.input {
+  @apply border border-gray-300 rounded px-3 py-2 w-full;
+}
+
+/* Smaller placeholder text to match label font size */
+.input::placeholder {
+  font-size: 0.875rem; /* text-sm size to match labels */
+  color: #9CA3AF; /* gray-400 */
+}
+
+.dark .input::placeholder {
+  color: #6B7280; /* gray-500 for dark mode */
+}
+
+/* === Global Typography Standard — Smash Brothers Burgers === */
+/* Mobile-first, tablet-friendly headings — matches Daily Sales form */
+
+/* H1 — Page Title */
+h1 {
+  font-size: 22px !important;
+  font-weight: 900 !important;  /* Black weight */
+  line-height: 1.2 !important;
+  font-family: 'Poppins', sans-serif !important;
+  color: #000; /* Adjust if using dark backgrounds */
+}
+
+/* H2 — Section Header */
+h2 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  font-family: 'Poppins', sans-serif !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  color: #000;
+}
+
+/* H3 — Subsection Label */
+h3 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  font-family: 'Poppins', sans-serif !important;
+  color: #000;
+}
+
+/* Responsive Scaling for Tablet/Desktop */
+@media (min-width: 768px) {
+  h1 { font-size: 24px !important; }
+  h2 { font-size: 20px !important; }
+  h3 { font-size: 18px !important; }
+}
+/* Fix: headings follow page text color */\nh1, h2, h3 { color: inherit !important; }
+/* Fix: headings follow page text color */
+h1, h2, h3 { color: inherit !important; }
+
+/* === Admin Pages Style Guide Typography === */
+/* Reference: /finance/expenses-import for canonical styling */
+/* Standard: text-xs (12px), 4px border radius, tablet-optimized */
+
+.admin-page h1,
+.admin-page .page-title {
+  font-size: 1.875rem !important; /* text-3xl */
+  font-weight: 700 !important;
+  font-family: 'Poppins', sans-serif !important;
+  color: inherit;
+}
+
+.admin-page .section-title {
+  font-size: 0.875rem !important; /* text-sm */
+  font-weight: 600 !important;
+  color: #475569; /* slate-600 */
+}
+
+.admin-page table {
+  font-size: 0.75rem !important; /* text-xs - 12px standard */
+}
+
+.admin-page th {
+  font-weight: 500 !important;
+  color: #475569 !important; /* slate-600 */
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+.admin-page td {
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+.admin-page button,
+.admin-page .btn {
+  font-size: 0.75rem !important; /* text-xs */
+  border-radius: 4px !important; /* 4px standard for tablet */
+}
+
+.admin-page .card {
+  border-radius: 4px !important;
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+.admin-page input,
+.admin-page select,
+.admin-page textarea {
+  font-size: 0.75rem !important; /* text-xs */
+  border-radius: 4px !important;
+}
+
+.admin-page .badge {
+  font-size: 0.75rem !important; /* text-xs */
+}
+
+/* Status indicators matching style guide */
+.admin-page .status-success {
+  background-color: #d1fae5 !important; /* emerald-100 */
+  color: #059669 !important; /* emerald-600 */
+}
+
+.admin-page .status-error {
+  background-color: #fee2e2 !important; /* red-100 */
+  color: #dc2626 !important; /* red-600 */
+}
+
+.admin-page .status-warning {
+  background-color: #fef3c7 !important; /* amber-100 */
+  color: #d97706 !important; /* amber-600 */
+}
