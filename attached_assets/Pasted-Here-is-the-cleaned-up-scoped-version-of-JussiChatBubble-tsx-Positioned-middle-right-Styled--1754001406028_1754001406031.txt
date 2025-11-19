@@ -1,0 +1,114 @@
+Here is the cleaned-up, scoped version of JussiChatBubble.tsx:
+
+✅ Positioned middle-right
+
+✅ Styled as you liked it before
+
+✅ File upload included
+
+✅ Meant to be used only inside Operations pages, by placing <JussiChatBubble /> on those pages only
+
+✅ Final JussiChatBubble.tsx
+tsx
+Copy
+Edit
+import React, { useRef } from 'react';
+
+export const JussiChatBubble = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBubbleClick = () => {
+    const chatContainer = document.getElementById('jussi-chat-container');
+    if (chatContainer) {
+      chatContainer.style.display = chatContainer.style.display === 'none' ? 'flex' : 'none';
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      alert(`Uploading file: ${file.name}`);
+      // Hook this into Jussi's upload pipeline if needed
+    }
+  };
+
+  return (
+    <>
+      <div
+        onClick={handleBubbleClick}
+        style={{
+          position: 'fixed',
+          top: '50%',
+          right: '30px',
+          transform: 'translateY(-50%)',
+          backgroundColor: '#111',
+          borderRadius: '50%',
+          width: '50px',
+          height: '50px',
+          cursor: 'pointer',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 0 10px rgba(0,0,0,0.3)'
+        }}
+        title="Jussi"
+      >
+        💬
+      </div>
+
+      <div
+        id="jussi-chat-container"
+        style={{
+          position: 'fixed',
+          top: 'calc(50% - 200px)',
+          right: '100px',
+          width: '350px',
+          height: '400px',
+          backgroundColor: '#fff',
+          border: '2px solid #ccc',
+          borderRadius: '10px',
+          padding: '10px',
+          display: 'none',
+          flexDirection: 'column',
+          zIndex: 9998
+        }}
+      >
+        <div style={{ marginBottom: '10px' }}>
+          <strong>Jussi - Head of Operations</strong>
+        </div>
+        <textarea
+          placeholder="Ask Jussi anything..."
+          style={{
+            flex: 1,
+            width: '100%',
+            resize: 'none',
+            padding: '5px',
+            fontSize: '14px',
+            border: '1px solid #ccc',
+            borderRadius: '5px'
+          }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.pdf"
+          onChange={handleFileChange}
+          style={{ marginTop: '10px' }}
+        />
+      </div>
+    </>
+  );
+};
+✅ What You Should Do Now:
+Place <JussiChatBubble /> only inside Operations pages, such as:
+
+OperationsHome.tsx
+
+Reporting.tsx
+
+Analysis.tsx
+
+Remove it from App.tsx or any layout files to avoid global display.
+
+Let me know if you'd like me to go through your file structure and confirm where to add/remove the chat bubble.
