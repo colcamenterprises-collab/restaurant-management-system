@@ -1,0 +1,136 @@
+A) Make the backend import endpoint bullet-proof
+
+Ensure the route is mounted exactly at /api/costing/ingredients/import.
+
+Return JSON on all paths, and accept your CSV’s headers (your file uses Item, Supplier, Cost, Unit Measurement, etc., not name,unit,unitCost,supplier).
+
+Drop-in replacement for server/routes/costing.ts import handler:
+
+import { Router } from "express";
+import { db } from "../lib/prisma";
+import { parse } from "csv-parse/sync";
+
+export const costingRouter = Router();
+
+/** Helpers */
+function cleanMoney(v: any) {
+  if (v == null) return 0;
+  // remove currency symbols, commas, spaces
+  const s = String(v).replace(/[^\d.\-]/g, "");
+  const n = Number(s);
+  return isFinite(n) ? n : 0;
+}
+function norm(s?: string) {
+  return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function pick(obj: any, keys: string[]) {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v != null && String(v).trim() !== "") return v;
+  }
+  return undefined;
+}
+
+/**
+ * CSV import:
+ * We auto-detect common column names:
+ *   name: ["name","item","ingredient","product"]
+ *   unit: ["unit","unit measurement","uom"]
+ *   unitCost: ["unitcost","cost","price","unit price","unit_price"]
+ *   supplier: ["supplier","brand","vendor"]
+ *
+ * Body: { csv: "raw text" }
+ */
+costingRouter.post("/ingredients/import", async (req, res) => {
+  try {
+    const csv = req.body?.csv as string;
+    if (!csv) return res.status(400).json({ ok: false, error: "CSV missing" });
+
+    const rows: any[] = parse(csv, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    });
+
+    let imported = 0;
+
+    for (const r of rows) {
+      // flexible column mapping
+      const nameRaw = pick(r, ["name", "item", "ingredient", "product"]);
+      const unitRaw = pick(r, ["unit", "unit measurement", "uom"]);
+      const costRaw = pick(r, ["unitcost", "cost", "price", "unit price", "unit_price"]);
+      const supplierRaw = pick(r, ["supplier", "brand", "vendor"]);
+
+      const name = String(nameRaw || "").trim();
+      if (!name) continue;
+
+      let unit = String(unitRaw || "").trim() || "unit";
+      // normalize common units like "kg", "g", "ml", "piece"
+      const u = norm(unit);
+      if (u.includes("kg")) unit = "kg";
+      else if (u === "g" || u.includes("gram")) unit = "g";
+      else if (u.includes("ml")) unit = "ml";
+      else if (u.includes("pcs") || u.includes("piece")) unit = "pc";
+
+      const unitCost = cleanMoney(costRaw);
+      const supplier = supplierRaw ? String(supplierRaw).trim() : null;
+
+      await db().ingredientV2.upsert({
+        where: { name },
+        update: { unit, unitCost, supplier },
+        create: { name, unit, unitCost, supplier },
+      });
+      imported++;
+    }
+
+    return res.json({ ok: true, imported });
+  } catch (err: any) {
+    console.error("[ingredients/import] failed:", err);
+    return res.status(500).json({ ok: false, error: "Import failed" });
+  }
+});
+
+
+…and make sure it’s mounted and JSON parsing is enabled:
+
+// server/index.ts
+import express from "express";
+import { costingRouter } from "./routes/costing";
+
+const app = express();
+app.use(express.json({ limit: "10mb" }));   // <= critical
+app.use("/api/costing", costingRouter);
+
+B) Make the frontend handle errors + send raw text
+
+Update the Ingredients page import action so it POSTS {csv: text} and handles non-OK responses gracefully.
+
+async function importCSV(ev: React.ChangeEvent<HTMLInputElement>) {
+  const file = ev.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const r = await fetch("/api/costing/ingredients/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ csv: text }),
+    });
+
+    // If server didn't return JSON OK, read the text so we don't get the '<!DOCTYPE' error
+    if (!r.ok) {
+      const msg = await r.text();
+      throw new Error(`Import failed: ${msg}`);
+    }
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "Import failed");
+
+    // reload list
+    await loadIngredients();
+    toast.success(`Imported ${j.imported} ingredients`);
+  } catch (e: any) {
+    console.error(e);
+    toast.error(e.message || "Import failed");
+  } finally {
+    ev.target.value = "";
+  }
+}
