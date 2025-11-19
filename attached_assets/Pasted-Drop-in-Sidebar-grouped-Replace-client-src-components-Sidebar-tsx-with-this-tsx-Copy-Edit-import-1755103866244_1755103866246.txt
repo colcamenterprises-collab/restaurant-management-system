@@ -1,0 +1,155 @@
+Drop-in Sidebar (grouped)
+Replace client/src/components/Sidebar.tsx with this:
+
+tsx
+Copy
+Edit
+import { useLocation } from "wouter";
+import { useState, Fragment } from "react";
+
+type Item = { label: string; path: string; icon: JSX.Element };
+
+// Minimal mono icons (no colors)
+const I = {
+  dash:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h7v6H4zM13 7h7v10h-7zM4 15h7v2H4z"/></svg>,
+  form:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 4h12v16H6z"/><path d="M8 8h8M8 12h8M8 16h6"/></svg>,
+  stock: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>,
+  file:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14l4-2 4 2 4-2 4 2V9z"/><path d="M14 3v6h6"/></svg>,
+  chart: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>,
+  money: <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="8"/><path d="M9 9h3a3 3 0 110 6H9m3-6V7m0 10v-2"/></svg>,
+  calc:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h3M8 15h3M13 15h3"/></svg>,
+  list:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>,
+  recipe:<svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h6"/></svg>,
+  bull:  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v6H4z"/><path d="M7 14h10M7 18h6"/></svg>,
+};
+
+type Group = { title: string; items: Item[] };
+
+const NAV: Group[] = [
+  {
+    title: "Operations",
+    items: [
+      { label: "Sales Form",   path: "/operations/sales",    icon: I.form },
+      { label: "Stock Form",   path: "/operations/stock",    icon: I.stock },
+      { label: "Expenses",     path: "/operations/expenses", icon: I.file },
+      { label: "Receipts",     path: "/operations/receipts", icon: I.file },
+      { label: "Analysis",     path: "/operations/analysis", icon: I.chart },
+    ],
+  },
+  {
+    title: "Finance",
+    items: [
+      { label: "Profit & Loss", path: "/finance/pnl",       icon: I.money },
+      { label: "Analysis",      path: "/finance/analysis",  icon: I.chart },
+    ],
+  },
+  {
+    title: "Menu Mgmt",
+    items: [
+      { label: "Cost Calculator",  path: "/menu/cost-calculator", icon: I.calc },
+      { label: "Ingredient Mgmt",  path: "/menu/ingredients",     icon: I.list },
+      { label: "Recipe Cards",     path: "/menu/recipes",         icon: I.recipe },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      { label: "Overview", path: "/marketing", icon: I.bull },
+    ],
+  },
+];
+
+export default function Sidebar() {
+  const [location, navigate] = useLocation();
+  const [open, setOpen] = useState(true);
+
+  // 256px open → 78px collapsed (icons only)
+  const width = open ? "w-64" : "w-[78px]";
+  const showLabel = open ? "" : "opacity-0 pointer-events-none";
+  const iconOnly  = open ? "" : "mx-auto";
+  const padX      = open ? "px-3" : "px-2";
+
+  return (
+    <aside
+      className={`sticky top-0 h-screen shrink-0 ${width}
+                  transition-[width] duration-300 ease-in-out
+                  bg-white border-r border-gray-200 flex flex-col`}
+      style={{ boxShadow: "2px 0 12px rgba(0,0,0,0.03)" }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className={`font-semibold tracking-tight text-gray-900 ${open ? "" : "sr-only"}`}>Smash Brothers</div>
+        <button
+          aria-label="Toggle sidebar"
+          onClick={() => setOpen(v => !v)}
+          className="rounded-lg border border-gray-200 px-2 py-1 text-xs hover:bg-gray-50"
+        >
+          {open ? "‹" : "›"}
+        </button>
+      </div>
+
+      {/* Groups */}
+      <nav className="px-2 pb-6 overflow-y-auto">
+        {NAV.map(group => (
+          <Fragment key={group.title}>
+            <div className={`text-[11px] font-semibold uppercase tracking-wide text-gray-400 px-2 mt-3 ${open ? "mb-2" : "sr-only"}`}>
+              {group.title}
+            </div>
+            <ul className="space-y-2">
+              {group.items.map(item => {
+                const active = location === item.path || location.startsWith(item.path + "/");
+                return (
+                  <li key={item.path}>
+                    <button
+                      onClick={() => navigate(item.path)}
+                      title={!open ? item.label : undefined}
+                      className={`relative w-full flex items-center ${padX} py-2 rounded-full
+                                  border border-transparent hover:bg-gray-50
+                                  ${active ? "bg-emerald-600 text-white shadow-sm" : "text-gray-800"}`}
+                    >
+                      <span className={`text-current ${iconOnly}`}>{item.icon}</span>
+                      <span className={`ml-3 text-sm transition-opacity ${showLabel}`}>{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </Fragment>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+Notes
+No dots, no colored badges. Monochrome SVG icons only.
+
+Active item uses a green rounded pill (exact vibe in the reference).
+
+Collapsed = icons centered; tooltips via title.
+
+Group headings match your list: Operations, Finance, Menu Mgmt, Marketing.
+
+Route wiring (quick)
+Add these routes in your client/src/App.tsx so the links work (placeholder components are fine until we wire real pages):
+
+tsx
+Copy
+Edit
+// ...
+<Route path="/operations/sales" component={DailySales} />
+<Route path="/operations/stock" component={DailyStock} />
+<Route path="/operations/expenses" component={Expenses} />
+<Route path="/operations/receipts" component={Receipts} />
+<Route path="/operations/analysis" component={() => <div className="p-6">Ops Analysis</div>} />
+
+<Route path="/finance/pnl" component={() => <div className="p-6">P&L</div>} />
+<Route path="/finance/analysis" component={() => <div className="p-6">Finance Analysis</div>} />
+
+<Route path="/menu/cost-calculator" component={() => <div className="p-6">Cost Calculator</div>} />
+<Route path="/menu/ingredients" component={() => <div className="p-6">Ingredient Management</div>} />
+<Route path="/menu/recipes" component={() => <div className="p-6">Recipe Cards</div>} />
+
+<Route path="/marketing" component={() => <div className="p-6">Marketing</div>} />
+// ...
+(If you need to keep the old paths alive, add small redirect stubs so /daily-sales → /operations/sales, etc.)
+
