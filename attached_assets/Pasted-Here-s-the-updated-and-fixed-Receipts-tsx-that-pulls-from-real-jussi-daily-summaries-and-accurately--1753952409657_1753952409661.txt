@@ -1,0 +1,84 @@
+Here’s the updated and fixed Receipts.tsx that pulls from real jussi_daily_summaries and accurately shows:
+
+✅ Real receipt numbers and total sales
+
+✅ Actual top-selling items
+
+✅ Correct modifiers and payment types
+
+✅ Current shift summary only
+
+✅ Replace Your Existing Receipts.tsx With This:
+tsx
+Copy
+Edit
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import "./Receipts.css";
+
+interface ReceiptSummary {
+  shift_date: string;
+  total_receipts: number;
+  total_sales: number;
+  total_discounts: number;
+  payment_methods: Record<string, number>;
+  top_items: { name: string; count: number }[];
+  modifiers: { name: string; count: number }[];
+}
+
+const Receipts: React.FC = () => {
+  const [summary, setSummary] = useState<ReceiptSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestSummary = async () => {
+      try {
+        const response = await axios.get("/api/receipts/jussi-summary/latest");
+        setSummary(response.data);
+      } catch (error) {
+        console.error("Failed to fetch receipt summary", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLatestSummary();
+  }, []);
+
+  if (loading) return <div className="receipt-summary">Loading receipt data…</div>;
+  if (!summary) return <div className="receipt-summary">No data available for the current shift.</div>;
+
+  return (
+    <div className="receipt-summary">
+      <h2>Shift Summary - {new Date(summary.shift_date).toLocaleDateString()}</h2>
+      <p><strong>Receipts:</strong> {summary.total_receipts}</p>
+      <p><strong>Total Sales:</strong> ฿{summary.total_sales.toFixed(2)}</p>
+      <p><strong>Total Discounts:</strong> ฿{summary.total_discounts.toFixed(2)}</p>
+
+      <h3>Payment Breakdown</h3>
+      <ul>
+        {Object.entries(summary.payment_methods).map(([method, amount]) => (
+          <li key={method}>
+            {method}: ฿{amount.toFixed(2)}
+          </li>
+        ))}
+      </ul>
+
+      <h3>Top Items Sold</h3>
+      <ul>
+        {summary.top_items.map(item => (
+          <li key={item.name}>{item.name}: {item.count}</li>
+        ))}
+      </ul>
+
+      <h3>Modifiers Sold</h3>
+      <ul>
+        {summary.modifiers.map(mod => (
+          <li key={mod.name}>{mod.name}: {mod.count}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Receipts;
