@@ -1,0 +1,120 @@
+3) Lock the two-step forms (front-end guard, Vite version)
+client/src/pages/DailySales.tsx
+tsx
+Copy
+Edit
+import { useLocation } from "wouter";
+import { useState } from "react";
+
+export default function DailySales() {
+  const [, navigate] = useLocation();
+  const [completedBy, setCompletedBy] = useState("");
+  const [cash, setCash] = useState(0);
+  const [qr, setQr] = useState(0);
+  const [grab, setGrab] = useState(0);
+  const [aroi, setAroi] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const id = "sales_" + Date.now();
+      sessionStorage.setItem("lastSalesFormId", id);
+      sessionStorage.setItem("lastSalesFormTs", String(Date.now()));
+      navigate(`/daily-stock?salesId=${encodeURIComponent(id)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-3xl font-extrabold tracking-tight">Daily Sales</h1>
+      <p className="text-sm text-gray-600">Step 1 of 2 — complete Sales, then you’ll be redirected to Stock.</p>
+
+      <form onSubmit={submit} className="mt-6 space-y-6">
+        <section className="rounded-2xl border bg-white p-5">
+          <h2 className="text-lg font-semibold mb-4">Shift Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label className="text-sm text-gray-600">Completed By</label><input value={completedBy} onChange={e=>setCompletedBy(e.target.value)} className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+            <div><label className="text-sm text-gray-600">Starting Cash</label><input className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border bg-white p-5">
+          <h2 className="text-lg font-semibold mb-4">Sales Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div><label className="text-sm text-gray-600">Cash Sales</label><input type="number" value={cash} onChange={e=>setCash(+e.target.value||0)} className="w-full border rounded-xl px-3 py-2 mt-1"/></div>
+            <div><label className="text-sm text-gray-600">QR Sales</label><input type="number" value={qr} onChange={e=>setQr(+e.target.value||0)} className="w-full border rounded-xl px-3 py-2 mt-1"/></div>
+            <div><label className="text-sm text-gray-600">Grab Sales</label><input type="number" value={grab} onChange={e=>setGrab(+e.target.value||0)} className="w-full border rounded-xl px-3 py-2 mt-1"/></div>
+            <div><label className="text-sm text-gray-600">Aroi Dee Sales</label><input type="number" value={aroi} onChange={e=>setAroi(+e.target.value||0)} className="w-full border rounded-xl px-3 py-2 mt-1"/></div>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-end">
+          <button disabled={submitting} className="rounded-xl bg-teal-600 text-white px-5 py-2">
+            {submitting ? "Submitting…" : "Save & Continue to Stock"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+client/src/pages/DailyStock.tsx
+tsx
+Copy
+Edit
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+
+function Lock({ message }: { message: string }) {
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <div className="rounded-2xl border bg-white p-8 max-w-xl text-center shadow-sm">
+        <h2 className="text-xl font-semibold">Stock Form Locked</h2>
+        <p className="text-sm text-gray-600 mt-2">{message}</p>
+        <a href="/daily-sales" className="inline-block mt-6 px-4 py-2 rounded-xl bg-teal-600 text-white text-sm">Go to Sales</a>
+      </div>
+    </div>
+  );
+}
+
+export default function DailyStock() {
+  const [location] = useLocation();
+  const params = new URLSearchParams(location.split("?")[1] || "");
+  const salesId = params.get("salesId") || "";
+
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("lastSalesFormId");
+    const when = Number(sessionStorage.getItem("lastSalesFormTs") || 0);
+    const fresh = Date.now() - when < 1000 * 60 * 15; // 15 minutes
+    setOk(!!salesId && token === salesId && fresh);
+  }, [salesId]);
+
+  if (!ok) {
+    return <Lock message="Please complete Daily Sales first. We’ll auto-forward you here after submit." />;
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-3xl font-extrabold tracking-tight">Daily Stock</h1>
+      <p className="text-sm text-gray-600">Step 2 of 2 — linked to Sales ID: <span className="font-mono">{salesId}</span></p>
+
+      <div className="mt-6 rounded-2xl border bg-white p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label className="text-sm text-gray-600">Buns Used</label><input className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+          <div><label className="text-sm text-gray-600">Patties Used</label><input className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+          <div><label className="text-sm text-gray-600">Drinks Sold</label><input className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+          <div><label className="text-sm text-gray-600">Notes</label><input className="w-full border rounded-xl px-3 py-2 mt-1" /></div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end mt-6">
+        <button className="rounded-xl bg-teal-600 text-white px-5 py-2">Submit Stock</button>
+      </div>
+    </div>
+  );
+}
