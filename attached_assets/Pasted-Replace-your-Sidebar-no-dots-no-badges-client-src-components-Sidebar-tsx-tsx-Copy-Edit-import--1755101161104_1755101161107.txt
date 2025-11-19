@@ -1,0 +1,119 @@
+Replace your Sidebar (no dots, no badges)
+client/src/components/Sidebar.tsx
+
+tsx
+Copy
+Edit
+import { useLocation } from "wouter";
+import { useState } from "react";
+
+type Item = { label: string; path: string };
+
+const NAV_SALES_OPS: Item[] = [
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Daily Sales Form", path: "/daily-sales" },
+  { label: "Daily Stock Form", path: "/daily-stock" },
+  { label: "Receipts", path: "/receipts" },
+  { label: "Expenses (Business)", path: "/expenses" },
+  { label: "System Status", path: "/system-status" },
+];
+
+export default function Sidebar() {
+  const [location, navigate] = useLocation();
+  const [open, setOpen] = useState(true);
+
+  // widths: 256px open → 78px collapsed
+  const width = open ? "w-64" : "w-[78px]";
+  const showLabel = open ? "" : "opacity-0 pointer-events-none";
+
+  return (
+    <aside
+      className={`sticky top-0 h-screen shrink-0 ${width}
+                  transition-[width] duration-300 ease-in-out
+                  bg-white border-r border-gray-200 flex flex-col`}
+      style={{ boxShadow: "2px 0 12px rgba(0,0,0,0.03)" }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className={`font-semibold tracking-tight text-gray-900 ${open ? "" : "sr-only"}`}>
+          Smash Brothers
+        </div>
+        <button
+          aria-label="Toggle sidebar"
+          onClick={() => setOpen(v => !v)}
+          className="rounded-lg border border-gray-200 px-2 py-1 text-xs hover:bg-gray-50"
+        >
+          {open ? "‹" : "›"}
+        </button>
+      </div>
+
+      {/* Section label */}
+      <div className={`text-[11px] font-semibold uppercase tracking-wide text-gray-400 px-3 ${open ? "mb-2" : "sr-only"}`}>
+        Sales & Operations
+      </div>
+
+      {/* Nav: text-only, slim active bar; NO DOTS */}
+      <nav className="px-2 pb-6 overflow-y-auto">
+        <ul className="space-y-2">
+          {NAV_SALES_OPS.map(item => {
+            const active = location.startsWith(item.path);
+            return (
+              <li key={item.path}>
+                <button
+                  onClick={() => navigate(item.path)}
+                  title={!open ? item.label : undefined}
+                  className={`relative w-full flex items-center rounded-xl px-3 py-2
+                              hover:bg-gray-50 border border-transparent
+                              ${active ? "bg-emerald-50 border-emerald-200" : ""}`}
+                >
+                  {/* Slim left accent when active */}
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-emerald-500" />
+                  )}
+
+                  {/* Collapsed: very small text hint (2 letters), no badge bg */}
+                  <span className={`text-[11px] font-semibold text-gray-700 w-6 text-center ${open ? "hidden" : ""}`}>
+                    {item.label.slice(0,2).toUpperCase()}
+                  </span>
+
+                  {/* Full label (hidden when collapsed) */}
+                  <span className={`ml-2 text-sm text-gray-800 transition-opacity ${showLabel}`}>
+                    {item.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </aside>
+  );
+}
+What this does
+Removes the colored dots entirely.
+
+Uses a thin emerald bar on the active item (clean, professional).
+
+Collapsed state shows a tiny 2-letter text hint (no badge background).
+
+Keeps your shell (flex-1/min-w-0), so no white gutter.
+
+Fix the agent’s prebuild script (their glob was broken)
+If they added the “deny layout hacks” script, correct the glob line or it won’t scan anything.
+
+scripts/deny-layout-hacks.js
+
+js
+Copy
+Edit
+import fs from "fs";
+import glob from "glob";
+
+const files = glob.sync("client/src/**/*.{tsx,ts,jsx,js}", { nodir: true }); // <-- fixed
+const bad = /(ml-|pl-|margin-left:|padding-left:).*(64|256|280|sidebar)/i;
+
+const offenders = files.filter(f => bad.test(fs.readFileSync(f, "utf8")));
+if (offenders.length) {
+  console.error("Blocked build: hard-coded left margins found:\n" + offenders.join("\n"));
+  process.exit(1);
+}
