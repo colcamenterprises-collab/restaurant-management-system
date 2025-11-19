@@ -1,0 +1,302 @@
+Replit Agent Instructions
+
+Do not do this:
+
+Do not rename, move, or split files.
+
+Do not change schema, DB, or JSON structure.
+
+Do not remove or alter toCents / fromCents / thb() helpers.
+
+Do not add dependencies.
+
+Do not improvise or add “nice to have” features beyond what is written.
+
+Only replace the file contents below exactly as written.
+
+1. server/forms/dailySalesV2.ts
+
+Add GET by ID and expand list endpoint.
+
+// Do not do this:
+// – Do not rename, move, or split this file
+// – Do not change schema, DB, or table names
+// – Do not add dependencies
+// – Only apply exactly what is written below
+
+import { Request, Response } from "express";
+import pool from "@/server/db";
+import { toCents, fromCents } from "@/lib/utils";
+
+// Existing createDailySalesV2 unchanged
+
+export async function listDailySalesV2(req: Request, res: Response) {
+  try {
+    const result = await pool.query(
+      `SELECT id, created_at, payload FROM daily_sales_v2 ORDER BY created_at DESC LIMIT 100`
+    );
+
+    const mapped = result.rows.map((row: any) => {
+      const p = row.payload || {};
+      return {
+        id: row.id,
+        date: row.created_at,
+        staff: p.completedBy || "",
+        cashStart: fromCents(p.startingCash || 0),
+        cashEnd: fromCents(p.closingCash || 0),
+        totalSales: fromCents(p.totalSales || 0),
+        rolls: p.rollsEnd || "-",
+        meat: p.meatEnd || "-",
+        status: "Submitted",
+      };
+    });
+
+    res.json({ ok: true, records: mapped });
+  } catch (err) {
+    console.error("Daily Sales V2 list error", err);
+    res.status(500).json({ ok: false, error: "Failed to list records" });
+  }
+}
+
+export async function getDailySalesV2(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT id, created_at, payload FROM daily_sales_v2 WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Not found" });
+    }
+
+    const row = result.rows[0];
+    const p = row.payload || {};
+
+    // Build shopping list (items where qty > 1)
+    const shoppingList = (p.requisition || [])
+      .filter((i: any) => (i.qty || 0) > 1)
+      .map((i: any) => ({
+        name: i.name,
+        qty: i.qty,
+        unit: i.unit,
+      }));
+
+    res.json({
+      ok: true,
+      record: {
+        id: row.id,
+        date: row.created_at,
+        staff: p.completedBy || "",
+        sales: {
+          cashSales: fromCents(p.cashSales || 0),
+          qrSales: fromCents(p.qrSales || 0),
+          grabSales: fromCents(p.grabSales || 0),
+          aroiDeeSales: fromCents(p.aroiDeeSales || 0),
+          totalSales: fromCents(p.totalSales || 0),
+        },
+        expenses: {
+          total: fromCents(p.totalExpenses || 0),
+          items: p.expenses || [],
+          wages: p.wages || [],
+        },
+        banking: {
+          cashBanked: fromCents(p.cashBanked || 0),
+          qrTransfer: fromCents(p.qrTransfer || 0),
+          closingCash: fromCents(p.closingCash || 0),
+          startingCash: fromCents(p.startingCash || 0),
+        },
+        stock: {
+          rolls: p.rollsEnd || "-",
+          meat: p.meatEnd || "-",
+        },
+        shoppingList,
+      },
+    });
+  } catch (err) {
+    console.error("Daily Sales V2 get error", err);
+    res.status(500).json({ ok: false, error: "Failed to fetch record" });
+  }
+}
+
+2. client/src/pages/operations/daily-sales-v2/Library.tsx
+// Do not do this:
+// – Do not rename, move, or split this file
+// – Do not change API routes
+// – Do not add dependencies
+// – Only apply exactly what is written below
+
+import React, { useEffect, useState } from "react";
+import { thb } from "@/lib/utils";
+
+type RecordType = {
+  id: string;
+  date: string;
+  staff: string;
+  cashStart: number;
+  cashEnd: number;
+  totalSales: number;
+  rolls: string;
+  meat: string;
+  status: string;
+};
+
+type FullRecord = {
+  id: string;
+  date: string;
+  staff: string;
+  sales: any;
+  expenses: any;
+  banking: any;
+  stock: any;
+  shoppingList: { name: string; qty: number; unit: string }[];
+};
+
+export default function DailySalesV2Library() {
+  const [records, setRecords] = useState<RecordType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selected, setSelected] = useState<FullRecord | null>(null);
+
+  useEffect(() => {
+    async function fetchRecords() {
+      try {
+        const res = await fetch("/api/forms/daily-sales/v2");
+        const data = await res.json();
+        if (data.ok && data.records) {
+          setRecords(data.records);
+        } else {
+          setError("No records found");
+        }
+      } catch (err) {
+        setError("Network error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRecords();
+  }, []);
+
+  async function viewRecord(id: string) {
+    const res = await fetch(`/api/forms/daily-sales/v2/${id}`);
+    const data = await res.json();
+    if (data.ok) {
+      setSelected(data.record);
+    }
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-extrabold font-[Poppins] mb-4">
+        Daily Sales Library (V2)
+      </h1>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+        <thead>
+          <tr className="bg-gray-100 text-left text-sm font-semibold font-[Poppins]">
+            <th className="p-2 border-b">Date</th>
+            <th className="p-2 border-b">Staff</th>
+            <th className="p-2 border-b">Total Sales</th>
+            <th className="p-2 border-b">Rolls</th>
+            <th className="p-2 border-b">Meat</th>
+            <th className="p-2 border-b">Status</th>
+            <th className="p-2 border-b">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="p-4 text-center text-gray-500">
+                No records found
+              </td>
+            </tr>
+          ) : (
+            records.map((rec) => (
+              <tr key={rec.id} className="text-sm font-[Poppins]">
+                <td className="p-2 border-b">
+                  {new Date(rec.date).toLocaleDateString()}
+                </td>
+                <td className="p-2 border-b">{rec.staff}</td>
+                <td className="p-2 border-b">{thb(rec.totalSales)}</td>
+                <td className="p-2 border-b">{rec.rolls}</td>
+                <td className="p-2 border-b">{rec.meat}</td>
+                <td className="p-2 border-b">{rec.status}</td>
+                <td className="p-2 border-b">
+                  <button
+                    className="px-3 py-1 bg-black text-white rounded"
+                    onClick={() => viewRecord(rec.id)}
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      {/* View Modal */}
+      {selected && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full p-6 overflow-y-auto max-h-[90vh]">
+            <h2 className="text-xl font-bold mb-4">Form Details</h2>
+            <p className="mb-2"><strong>Date:</strong> {new Date(selected.date).toLocaleDateString()}</p>
+            <p className="mb-2"><strong>Staff:</strong> {selected.staff}</p>
+
+            <h3 className="font-semibold mt-4">Sales</h3>
+            <pre className="bg-gray-50 p-2 rounded text-sm">
+              {JSON.stringify(selected.sales, null, 2)}
+            </pre>
+
+            <h3 className="font-semibold mt-4">Expenses</h3>
+            <pre className="bg-gray-50 p-2 rounded text-sm">
+              {JSON.stringify(selected.expenses, null, 2)}
+            </pre>
+
+            <h3 className="font-semibold mt-4">Banking</h3>
+            <pre className="bg-gray-50 p-2 rounded text-sm">
+              {JSON.stringify(selected.banking, null, 2)}
+            </pre>
+
+            <h3 className="font-semibold mt-4">Stock</h3>
+            <p>Rolls: {selected.stock.rolls}</p>
+            <p>Meat: {selected.stock.meat}</p>
+
+            <h3 className="font-semibold mt-4">Shopping List</h3>
+            {selected.shoppingList.length === 0 ? (
+              <p>No items to purchase</p>
+            ) : (
+              <ul className="list-disc pl-6">
+                {selected.shoppingList.map((item, idx) => (
+                  <li key={idx}>
+                    {item.name} – {item.qty} {item.unit}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                className="px-3 py-1 bg-gray-300 rounded"
+                onClick={() => setSelected(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+✅ With this patch:
+
+Library V2 shows summary table with Date, Staff, Total Sales, Rolls, Meat, Status, Actions.
+
+Clicking View opens a modal with full Form 1 + Form 2 data.
+
+Shopping list shows only items with qty > 1.
+
+No edits/deletes/prints yet — those come in Patch 2.
