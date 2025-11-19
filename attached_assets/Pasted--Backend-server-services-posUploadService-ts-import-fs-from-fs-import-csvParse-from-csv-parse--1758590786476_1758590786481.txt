@@ -1,0 +1,181 @@
+📂 Backend
+server/services/posUploadService.ts
+import fs from "fs";
+import csvParse from "csv-parse/sync";
+import { prisma } from "../db";
+
+export async function processPosCsv(filePath: string) {
+  const csvData = fs.readFileSync(filePath, "utf-8");
+  const records = csvParse.parse(csvData, {
+    columns: true,
+    skip_empty_lines: true,
+  });
+
+  if (!records.length) return;
+
+  const headers = Object.keys(records[0]).map(h => h.toLowerCase());
+
+  // Detect file type
+  if (headers.includes("shift id")) {
+    return processShiftReport(records);
+  }
+  if (headers.includes("payment type")) {
+    return processPaymentReport(records);
+  }
+  if (headers.includes("net sales") && headers.includes("gross sales")) {
+    return processSalesSummary(records);
+  }
+
+  return { status: "unknown", message: "CSV type not recognized" };
+}
+
+async function processShiftReport(records: any[]) {
+  for (const row of records) {
+    await prisma.loyverse_shifts.upsert({
+      where: { id: row["Shift ID"] },
+      update: {
+        gross_sales: parseFloat(row["Gross Sales"] || 0),
+        net_sales: parseFloat(row["Net Sales"] || 0),
+        cash: parseFloat(row["Cash Payments"] || 0),
+        card: parseFloat(row["Card Payments"] || 0),
+        qr: parseFloat(row["QR Payments"] || 0),
+        pay_in: parseFloat(row["Pay Ins"] || 0),
+        pay_out: parseFloat(row["Pay Outs"] || 0),
+        expected_cash: parseFloat(row["Expected Cash Amount"] || 0),
+        actual_cash: parseFloat(row["Actual Cash Amount"] || 0),
+      },
+      create: {
+        id: row["Shift ID"],
+        date: new Date(row["Opened At"]),
+        gross_sales: parseFloat(row["Gross Sales"] || 0),
+        net_sales: parseFloat(row["Net Sales"] || 0),
+        cash: parseFloat(row["Cash Payments"] || 0),
+        card: parseFloat(row["Card Payments"] || 0),
+        qr: parseFloat(row["QR Payments"] || 0),
+        pay_in: parseFloat(row["Pay Ins"] || 0),
+        pay_out: parseFloat(row["Pay Outs"] || 0),
+        expected_cash: parseFloat(row["Expected Cash Amount"] || 0),
+        actual_cash: parseFloat(row["Actual Cash Amount"] || 0),
+      }
+    });
+  }
+  return { status: "ok", type: "shift" };
+}
+
+async function processPaymentReport(records: any[]) {
+  for (const row of records) {
+    await prisma.loyverse_receipts.create({
+      data: {
+        id: row["Receipt Number"],
+        shift_id: row["Shift ID"],
+        payment_type: row["Payment Type"],
+        amount: parseFloat(row["Amount"] || 0),
+        date: new Date(row["Receipt Date"]),
+      },
+    });
+  }
+  return { status: "ok", type: "payment" };
+}
+
+async function processSalesSummary(records: any[]) {
+  for (const row of records) {
+    await prisma.loyverse_shifts.upsert({
+      where: { id: row["Shift ID"] },
+      update: {
+        gross_sales: parseFloat(row["Gross Sales"] || 0),
+        net_sales: parseFloat(row["Net Sales"] || 0),
+        expenses: parseFloat(row["Discounts"] || 0),
+      },
+      create: {
+        id: row["Shift ID"],
+        date: new Date(row["Opened At"] || Date.now()),
+        gross_sales: parseFloat(row["Gross Sales"] || 0),
+        net_sales: parseFloat(row["Net Sales"] || 0),
+        expenses: parseFloat(row["Discounts"] || 0),
+      }
+    });
+  }
+  return { status: "ok", type: "summary" };
+}
+
+server/routes/posUpload.ts
+import { Router } from "express";
+import multer from "multer";
+import { processPosCsv } from "../services/posUploadService";
+
+const upload = multer({ dest: "uploads/" });
+const router = Router();
+
+router.post("/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  try {
+    const result = await processPosCsv(req.file.path);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to process file" });
+  }
+});
+
+export default router;
+
+
+👉 Wire into server/index.ts:
+
+import posUploadRouter from "./routes/posUpload";
+app.use("/api/pos", posUploadRouter);
+
+📂 Frontend
+client/src/pages/operations/analysis/ShiftSummary.tsx
+import { useState } from "react";
+
+export default function ShiftSummary() {
+  const [message, setMessage] = useState("");
+
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const res = await fetch("/api/pos/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    setMessage(JSON.stringify(data, null, 2));
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Shift Summary Upload</h1>
+      <form onSubmit={handleUpload} className="space-y-4">
+        <input type="file" name="file" className="border p-2" />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Upload
+        </button>
+      </form>
+      {message && (
+        <pre className="mt-4 p-4 bg-gray-100 border rounded">{message}</pre>
+      )}
+    </div>
+  );
+}
+
+📂 Package Additions
+
+Install dependencies:
+
+npm install multer csv-parse
+
+🚀 End Result
+
+Shift Summary Page → CSV upload form.
+
+Upload any Loyverse CSV (Shift Reports, Sales Summary, Payment Types).
+
+Backend parses + saves data into DB.
+
+JSON response shows what was processed.
+
+Data flows into the same tables (loyverse_shifts, loyverse_receipts) used by Daily Shift Analysis.
