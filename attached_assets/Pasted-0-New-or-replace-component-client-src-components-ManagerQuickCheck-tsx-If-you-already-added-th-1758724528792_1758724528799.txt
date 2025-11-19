@@ -1,0 +1,259 @@
+0) New (or replace) component — client/src/components/ManagerQuickCheck.tsx
+
+If you already added this, you can skip; otherwise paste this whole file.
+
+import React, { useEffect, useState } from 'react';
+
+type Question = { id:number; text:string; category?:string|null };
+type Props = {
+  salesId: number;
+  onDone: (result: {status: 'COMPLETED'|'SKIPPED'|'UNAVAILABLE'}) => void;
+  onCancel: () => void;
+};
+
+export default function ManagerQuickCheck({ salesId, onDone, onCancel }: Props) {
+  const [loading, setLoading] = useState(true);
+  const [required, setRequired] = useState(false);
+  const [status, setStatus] = useState<'PENDING'|'UNAVAILABLE'|'COMPLETED'|'SKIPPED'>('PENDING');
+  const [dailyCheckId, setDailyCheckId] = useState<number| null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<number, {response:string; note?:string}>>({});
+  const [answeredBy, setAnsweredBy] = useState('');
+  const [managerPin, setManagerPin] = useState('');
+  const [skipReason, setSkipReason] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const r = await fetch(`/api/manager-check/questions?salesId=${salesId}`);
+        const data = await r.json();
+        setRequired(!!data.required);
+        setStatus(data.status);
+        setDailyCheckId(data.dailyCheckId ?? null);
+        setQuestions(data.questions ?? []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [salesId]);
+
+  const setAns = (qid:number, field:'response'|'note', val:string) => {
+    setAnswers(p => ({ ...p, [qid]: { ...p[qid], [field]: val } }));
+  };
+
+  const submit = async () => {
+    if (!dailyCheckId) return;
+    const payload = {
+      dailyCheckId,
+      answeredBy,
+      managerPin: managerPin || undefined,
+      answers: Object.entries(answers).map(([qid, v]) => ({
+        questionId: Number(qid), response: v.response || null, note: v.note || null
+      }))
+    };
+    const r = await fetch('/api/manager-check/submit', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (data.ok) onDone({ status: 'COMPLETED' });
+  };
+
+  const skip = async () => {
+    if (!skipReason.trim()) return;
+    const r = await fetch('/api/manager-check/skip', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ salesId, reason: skipReason })
+    });
+    const data = await r.json();
+    if (data.ok) onDone({ status: 'SKIPPED' });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl w-full max-w-2xl p-6">
+        <div className="text-xl font-semibold mb-2">Manager Quick Check</div>
+
+        {loading ? (
+          <div>Loading…</div>
+        ) : status === 'UNAVAILABLE' ? (
+          <div className="space-y-4">
+            <div className="p-3 bg-yellow-100 rounded">Checklist unavailable. Submission will be allowed but flagged.</div>
+            <div className="flex gap-2 justify-end">
+              <button className="px-4 py-2 rounded border" onClick={() => onDone({ status: 'UNAVAILABLE' })}>Continue</button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-4">
+              {questions.map(q => (
+                <div key={q.id} className="border rounded-xl p-3">
+                  <div className="font-medium">{q.text}</div>
+                  <div className="mt-2 flex gap-3">
+                    {['PASS','FAIL','NA'].map(opt => (
+                      <label key={opt} className="flex items-center gap-2">
+                        <input type="radio" name={`q-${q.id}`}
+                               onChange={() => setAns(q.id, 'response', opt)}
+                               checked={answers[q.id]?.response === opt}/>
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <textarea className="mt-2 w-full border rounded p-2"
+                            placeholder="Note (optional)"
+                            value={answers[q.id]?.note ?? ''}
+                            onChange={(e) => setAns(q.id, 'note', e.target.value)} />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input className="border rounded p-2" placeholder="Manager name (required)"
+                     value={answeredBy} onChange={(e)=>setAnsweredBy(e.target.value)} />
+              <input className="border rounded p-2" placeholder="Manager PIN (optional)"
+                     value={managerPin} onChange={(e)=>setManagerPin(e.target.value)} />
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-500">
+                {required ? 'Checklist is required before final submit.' : 'Checklist is recommended. You can skip with a reason.'}
+              </div>
+              <div className="flex gap-2">
+                {!required && (
+                  <>
+                    <input className="border rounded p-2" placeholder="Skip reason (required to skip)"
+                           value={skipReason} onChange={(e)=>setSkipReason(e.target.value)} />
+                    <button className="px-4 py-2 border rounded" onClick={skip}>Skip</button>
+                  </>
+                )}
+                <button className="px-4 py-2 border rounded" onClick={onCancel}>Cancel</button>
+                <button className="px-4 py-2 rounded bg-black text-white"
+                        onClick={submit}
+                        disabled={required && (!answeredBy || questions.some(q => !answers[q.id]?.response))}>
+                  Submit Check
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+1) Wire it into Form 2 final submit — client/src/pages/operations/DailyStock.tsx
+
+Paste these BEGIN/END blocks in your active Form 2 file. They won’t collide with your existing logic.
+
+// === BEGIN MANAGER QUICK CHECK: imports ===
+import React, { useState } from 'react';
+import ManagerQuickCheck from '@/components/ManagerQuickCheck';
+// === END MANAGER QUICK CHECK: imports ===
+
+
+Inside your component body:
+
+// === BEGIN MANAGER QUICK CHECK: state & handlers ===
+const [showCheck, setShowCheck] = useState(false);
+
+const onFinalSubmitClick = () => {
+  // instead of immediately submitting, open checklist
+  setShowCheck(true);
+};
+
+// call your existing final submit here after checklist completes
+const handleCheckDone = async ({ status }:{status:'COMPLETED'|'SKIPPED'|'UNAVAILABLE'}) => {
+  setShowCheck(false);
+  // If you want to attach the status to your payload, do it here.
+  await submitAll(); // <-- call your real final submit function
+};
+// === END MANAGER QUICK CHECK: state & handlers ===
+
+
+In your JSX, replace your final button’s onClick with onFinalSubmitClick, and add the modal:
+
+<button onClick={onFinalSubmitClick} className="btn btn-primary">Submit All</button>
+
+{showCheck && (
+  <ManagerQuickCheck
+    salesId={salesId /* already available from ?shift= or props */}
+    onDone={handleCheckDone}
+    onCancel={() => setShowCheck(false)}
+  />
+)}
+
+
+That’s it for the UI. Staff flow remains identical—just a 4-question popup before submit.
+
+2) Add to the management email (append-only)
+
+If your email builder is server/services/email.ts or server/services/reportEmail.ts, add this helper and call it where you assemble the daily report for a given salesId.
+
+// === BEGIN MANAGER QUICK CHECK: email helper ===
+import { db } from '../db'; // your Drizzle db import
+import { sql } from 'drizzle-orm';
+
+export async function renderManagerQuickCheckSection(salesId: number): Promise<string> {
+  // header
+  const [check] = await db.execute(sql`
+    SELECT id, status, answeredBy, skipReason
+    FROM DailyManagerCheck
+    WHERE salesId = ${salesId}
+    LIMIT 1;
+  `) as any[];
+
+  if (!check) return 'No record.';
+  if (check.status === 'UNAVAILABLE') return 'Checklist unavailable (system).';
+  if (check.status === 'SKIPPED') return `SKIPPED. Reason: ${check.skipReason || '—'}`;
+
+  // items
+  const items = await db.execute(sql`
+    SELECT i.response, i.note, q.text
+    FROM DailyManagerCheckItem i
+    JOIN ManagerCheckQuestion q ON q.id = i.questionId
+    WHERE i.dailyCheckId = ${check.id}
+    ORDER BY q.id;
+  `) as any[];
+
+  const lines = [
+    `Manager: ${check.answeredBy || '—'}`,
+    ...items.map((i:any) => `• ${i.text} — ${i.response || '—'}${i.note ? ` (note: ${i.note})` : ''}`)
+  ];
+  return lines.join('\n');
+}
+// === END MANAGER QUICK CHECK: email helper ===
+
+
+Where you build the email body:
+
+// === BEGIN MANAGER QUICK CHECK: email section insert ===
+const managerCheck = await renderManagerQuickCheckSection(salesId);
+addSection('Manager Quick Check', managerCheck); // use your existing addSection helper
+// === END MANAGER QUICK CHECK: email section insert ===
+
+
+If your email builder file name/path is different, paste the helper there; the code is self-contained.
+
+3) Smoke tests (API + UI)
+
+API quick check
+
+curl -s "http://localhost:5000/api/manager-check/questions?salesId=123" | jq
+# copy dailyCheckId from above:
+curl -s -X POST http://localhost:5000/api/manager-check/submit \
+  -H "Content-Type: application/json" \
+  -d '{"dailyCheckId":999,"answeredBy":"Ael","answers":[{"questionId":1,"response":"PASS"}]}'
+
+
+UI
+
+Open Form 2 → click Submit All → confirm modal appears.
+
+In soft mode, try Skip with reason; in strict mode, confirm you must answer + enter manager name.
+
+4) Ops toggle (soft vs strict)
+
+Soft (recommended first week): allow skip with reason
+CHECKLIST_REQUIRED=false
+
+Strict: enforce answers before submit
+CHECKLIST_REQUIRED=true
